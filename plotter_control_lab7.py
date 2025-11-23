@@ -6,7 +6,6 @@ import time
 pwm = PWM(Pin(0), freq=50, duty_u16=8192)
 pwm.duty_u16(32768)
 
-# you can change this value after calibrating your plotter jig
 ANGLE_OFFSET = -3 #other angles to test calibration: -10, +5, +12
 
 #setting PWM value for the servos
@@ -31,7 +30,7 @@ def translate(angle: float) -> int:
     if adjusted_angle > 180:
         adjusted_angle = 180
 
-    #minimum and maximum PWM (in microseconds) that correspond to the servo's physical limits
+    #minimum and maximum PWM in microseconds that correspond to the servo's physical limits
     pulse_min = 500 #0 degrees
     pulse_max = 2500 #180 degrees
 
