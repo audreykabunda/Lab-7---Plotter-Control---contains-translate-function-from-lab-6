@@ -1,14 +1,15 @@
-# the libraries that enable communication with the pico and also manipulate time
+#libraries that enable communication with the pico and also manipulate time
 from machine import Pin, PWM
 import time
 
+#setting a PWM signal and assigning it a frequency
 pwm = PWM(Pin(0), freq=50, duty_u16=8192)
 pwm.duty_u16(32768)
 
 # you can change this value after calibrating your plotter jig
-ANGLE_OFFSET = 0     # try values like -10, +5, +12 to calibrate each servo
+ANGLE_OFFSET = -3 #other angles to test calibration: -10, +5, +12
 
-#setting PWM values for the servos
+#setting PWM value for the servos
 shoulder = PWM(Pin(0), freq=50)
 elbow = PWM(Pin(1), freq=50)
 wrist = PWM(Pin(2), freq=50)
@@ -21,47 +22,44 @@ def translate(angle: float) -> int:
     This prevents sending unsafe PWM values to the servo.
     """
 
-    # apply the offset to the input angle
+    #apply the offset to the input angle
     adjusted_angle = angle + ANGLE_OFFSET
 
-    # clamp the adjusted angle so it stays within safe bounds
+    #makes sure that the servo motors stays within bounds
     if adjusted_angle < 0:
         adjusted_angle = 0
     if adjusted_angle > 180:
         adjusted_angle = 180
 
-    # the minimum and maximum pulse widths (in microseconds)
-    # that correspond to the servo's physical limits
-    pulse_min = 500     # 0 degrees
-    pulse_max = 2500    # 180 degrees
+    #minimum and maximum PWM (in microseconds) that correspond to the servo's physical limits
+    pulse_min = 500 #0 degrees
+    pulse_max = 2500 #180 degrees
 
-    # calculate the pulse width for the given angle
+    #calculate the PWM for the given angle
     pulse_width = pulse_min + (pulse_max - pulse_min) * (adjusted_angle / 180)
 
-    # the period of a 50 Hz PWM signal is 20,000 microseconds
+    #the period of a 50 Hz PWM signal is 20,000 microseconds
     duty_cycle = pulse_width / 20000
 
-    # convert the duty cycle (0.0–1.0) into a 16-bit value for duty_u16
+    #convert the duty cycle (0.0–1.0) into a 16-bit value for duty_u16
     duty_cycle_value = int(duty_cycle * 65535)
 
     print("angle =", angle, "adjusted_angle =", adjusted_angle, 
           "duty_cycle_value =", duty_cycle_value)
 
-    # return this value to be used by servo.duty_u16(...)
     return duty_cycle_value
 
 #setting functions to control the movement of the pen servo
 def wrist_up():
-    wrist.duty_u16(translate(0))
+    wrist.duty_u16(translate(0)) #the angle at which the servo has the pen up
     time.sleep(0.5)
 def wrist_down():
-    wrist.duty_u16(translate(30))
+    wrist.duty_u16(translate(30)) #the angle at which the servo has the pen down
     time.sleep(0.5)
 
 def move_to(x, y):
     """
     Move the shoulder and elbow servos to approximate x,y position.
-    For beginners, we just map X -> shoulder angle, Y -> elbow angle.
     """
     shoulder_angle = x
     elbow_angle = y
@@ -71,6 +69,7 @@ def move_to(x, y):
     elbow.duty_u16(translate(elbow_angle))
     time.sleep(0.05)
 
+#opens the circle.gcode file
 def run_gcode(filename):
     with open(filename) as file:
         for line in file:
@@ -78,7 +77,7 @@ def run_gcode(filename):
             if line == "" or line.startswith(";"):
                 continue
 
-            #wrist up and down
+            #controling wrist movement based on information in file
             if line.startswith("M3"):
                 wrist_down()
                 continue
@@ -86,7 +85,7 @@ def run_gcode(filename):
                 wrist_up()
                 continue
 
-            # MOVE commands (use S and E as X and Y)
+            #skips the letters and moves to the numbers to get the degrees
             if line.startswith("G1"):
                 x = None
                 y = None
